@@ -157,6 +157,43 @@
     return Array.from(containers);
   }
 
+  // Return elements that represent a single visible comment block
+  function getCommentBlocks() {
+    const root = getDiscussionRoot();
+    const blocks = new Set();
+
+    // Generic GitHub comment blocks often carry one of these classes
+    // Use multiple selectors to be resilient to slight DOM changes
+    const nodes = root.querySelectorAll(
+      '.js-comment, .review-comment, .timeline-comment, .js-inline-comment, .js-resolvable-thread-comment'
+    );
+    nodes.forEach((el) => {
+      // Heuristic: ensure it actually has a comment author header
+      if (el.querySelector('.timeline-comment-header-text a.author, header a.author, a.author')) {
+        blocks.add(el);
+      }
+    });
+
+    return Array.from(blocks);
+  }
+
+  function getBlockAuthor(block) {
+    const a = block.querySelector('.timeline-comment-header-text a.author, header a.author, a.author');
+    return a ? (a.textContent || '').trim() : '';
+  }
+
+  // Heuristic: PR description is the first timeline item with a comment block
+  function getPRDescriptionContainers() {
+    const root = getDiscussionRoot();
+    const items = Array.from(root.querySelectorAll('.js-timeline-item'));
+    for (const el of items) {
+      if (el.querySelector('.timeline-comment, .js-comment, .review-comment')) {
+        return [el];
+      }
+    }
+    return [];
+  }
+
   function containerHasAuthor(container, username) {
     // Match by exact author text; robust and simple
     const authors = container.querySelectorAll('a.author');
@@ -168,16 +205,45 @@
 
   function applyFilter(username) {
     const containers = getCommentContainers();
+    const blocks = getCommentBlocks();
+    const prDescContainers = getPRDescriptionContainers();
+
     if (username === ALL_VALUE) {
+      // Show everything
+      blocks.forEach((b) => b.classList.remove('rf-hidden'));
       containers.forEach((c) => c.classList.remove('rf-hidden'));
       return;
     }
+
+    // Hide/show individual comment blocks by exact author match
+    blocks.forEach((b) => {
+      const author = getBlockAuthor(b);
+      if (author === username) {
+        b.classList.remove('rf-hidden');
+      } else {
+        b.classList.add('rf-hidden');
+      }
+    });
+
+    // Then hide any containers that no longer contain a visible comment block
     containers.forEach((c) => {
-      if (containerHasAuthor(c, username)) {
+      const visibleChild = c.querySelector(
+        '.js-comment:not(.rf-hidden), .review-comment:not(.rf-hidden), .timeline-comment:not(.rf-hidden), .js-inline-comment:not(.rf-hidden), .js-resolvable-thread-comment:not(.rf-hidden)'
+      );
+      if (visibleChild) {
         c.classList.remove('rf-hidden');
       } else {
         c.classList.add('rf-hidden');
       }
+    });
+
+    // Always keep PR description visible (container and its blocks)
+    prDescContainers.forEach((c) => {
+      c.classList.remove('rf-hidden');
+      const descBlocks = c.querySelectorAll(
+        '.js-comment, .review-comment, .timeline-comment, .js-inline-comment, .js-resolvable-thread-comment'
+      );
+      descBlocks.forEach((b) => b.classList.remove('rf-hidden'));
     });
   }
 
