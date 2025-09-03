@@ -1,0 +1,28 @@
+/* Floating filter UI */
+#rf-filter-box {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  z-index: 9999;
+  background: var(--bgColor-default, #fff);
+  color: var(--fgColor-default, #24292f);
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(140,149,159,0.2);
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+#rf-filter-box label {
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+#rf-select {
+  max-width: 220px;
+}
+
+.rf-hidden {
+  display: none !important;
+}
+
